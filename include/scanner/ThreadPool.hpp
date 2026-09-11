@@ -10,10 +10,9 @@
 namespace scanner {
 
 class ThreadPool {
-public:
+ public:
   explicit ThreadPool(size_t threads = std::thread::hardware_concurrency()) {
-    if (threads == 0)
-      threads = 4;
+    if (threads == 0) threads = 4;
     for (size_t i = 0; i < threads; ++i) {
       workers_.emplace_back([this] {
         while (true) {
@@ -21,8 +20,7 @@ public:
           {
             std::unique_lock<std::mutex> lock(queueMutex_);
             cv_.wait(lock, [this] { return stop_ || !tasks_.empty(); });
-            if (stop_ && tasks_.empty())
-              return;
+            if (stop_ && tasks_.empty()) return;
             task = std::move(tasks_.front());
             tasks_.pop();
           }
@@ -45,7 +43,7 @@ public:
       stop_ = true;
     }
     cv_.notify_all();
-    for (auto &worker : workers_) {
+    for (auto& worker : workers_) {
       if (worker.joinable()) {
         worker.join();
       }
@@ -66,7 +64,7 @@ public:
     doneCv_.wait(lock, [this] { return activeTasks_ == 0 && tasks_.empty(); });
   }
 
-private:
+ private:
   std::vector<std::thread> workers_;
   std::queue<std::function<void()>> tasks_;
   std::mutex queueMutex_;
@@ -76,4 +74,4 @@ private:
   bool stop_{false};
 };
 
-} // namespace scanner
+}  // namespace scanner

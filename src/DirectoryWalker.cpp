@@ -1,13 +1,13 @@
 #include "scanner/DirectoryWalker.hpp"
+
 #include <fstream>
 #include <vector>
 
 namespace scanner {
 
-bool DirectoryWalker::isBinaryFile(const std::filesystem::path &path) {
+bool DirectoryWalker::isBinaryFile(const std::filesystem::path& path) {
   std::ifstream ifs(path, std::ios::binary);
-  if (!ifs)
-    return true;
+  if (!ifs) return true;
 
   char buf[1024];
   ifs.read(buf, sizeof(buf));
@@ -21,14 +21,12 @@ bool DirectoryWalker::isBinaryFile(const std::filesystem::path &path) {
   return false;
 }
 
-void DirectoryWalker::walkFile(const std::filesystem::path &filePath,
-                               const LineCallback &callback) {
-  if (isBinaryFile(filePath))
-    return;
+void DirectoryWalker::walkFile(const std::filesystem::path& filePath,
+                               const LineCallback& callback) {
+  if (isBinaryFile(filePath)) return;
 
   std::ifstream ifs(filePath);
-  if (!ifs)
-    return;
+  if (!ifs) return;
 
   std::string line;
   size_t lineNum = 1;
@@ -43,10 +41,9 @@ void DirectoryWalker::walkFile(const std::filesystem::path &filePath,
   }
 }
 
-void DirectoryWalker::walkDirectory(const std::filesystem::path &rootPath,
-                                    const LineCallback &callback) {
-  if (!std::filesystem::exists(rootPath))
-    return;
+void DirectoryWalker::walkDirectory(const std::filesystem::path& rootPath,
+                                    const LineCallback& callback) {
+  if (!std::filesystem::exists(rootPath)) return;
 
   if (!std::filesystem::is_directory(rootPath)) {
     walkFile(rootPath, callback);
@@ -54,12 +51,10 @@ void DirectoryWalker::walkDirectory(const std::filesystem::path &rootPath,
   }
 
   static constexpr std::string_view ignoredDirs[] = {
-      ".git",  "node_modules", "build",  "dist",       "bin",
-      ".idea", ".vscode",      "target", "__pycache__"};
+      ".git", "node_modules", "build", "dist", "bin", ".idea", ".vscode", "target", "__pycache__"};
 
-  for (const auto &entry : std::filesystem::recursive_directory_iterator(
-           rootPath,
-           std::filesystem::directory_options::skip_permission_denied)) {
+  for (const auto& entry : std::filesystem::recursive_directory_iterator(
+           rootPath, std::filesystem::directory_options::skip_permission_denied)) {
     if (entry.is_directory()) {
       std::string dirName = entry.path().filename().string();
       for (std::string_view ign : ignoredDirs) {
@@ -87,4 +82,4 @@ void DirectoryWalker::walkDirectory(const std::filesystem::path &rootPath,
   }
 }
 
-} // namespace scanner
+}  // namespace scanner

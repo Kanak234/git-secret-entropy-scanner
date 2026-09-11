@@ -30,4 +30,4 @@ struct ScanStats {
   double scanDurationMs{0.0};
 };
 
-} // namespace scanner
+}  // namespace scanner

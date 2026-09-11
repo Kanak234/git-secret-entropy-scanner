@@ -1,27 +1,27 @@
 #include "scanner/Scanner.hpp"
-#include "scanner/DirectoryWalker.hpp"
-#include "scanner/GitLogParser.hpp"
+
 #include <chrono>
 #include <iostream>
 #include <unordered_set>
 
+#include "scanner/DirectoryWalker.hpp"
+#include "scanner/GitLogParser.hpp"
+
 namespace scanner {
 
 Scanner::Scanner(size_t threadCount)
-    : threadPool_(threadCount == 0 ? std::thread::hardware_concurrency()
-                                   : threadCount) {}
+    : threadPool_(threadCount == 0 ? std::thread::hardware_concurrency() : threadCount) {}
 
-void Scanner::addFindings(std::vector<SecretFinding> &&newFindings) {
-  if (newFindings.empty())
-    return;
+void Scanner::addFindings(std::vector<SecretFinding>&& newFindings) {
+  if (newFindings.empty()) return;
   std::lock_guard<std::mutex> lock(findingsMutex_);
-  for (auto &f : newFindings) {
+  for (auto& f : newFindings) {
     findings_.push_back(std::move(f));
   }
 }
 
-ScanStats Scanner::scanGitRepository(const std::filesystem::path &repoPath,
-                                     const std::string &revisionRange) {
+ScanStats Scanner::scanGitRepository(const std::filesystem::path& repoPath,
+                                     const std::string& revisionRange) {
   clearFindings();
   ScanStats stats;
   auto startTime = std::chrono::steady_clock::now();
@@ -42,8 +42,7 @@ ScanStats Scanner::scanGitRepository(const std::filesystem::path &repoPath,
   batch.reserve(2000);
 
   auto dispatchBatch = [this, &batch]() {
-    if (batch.empty())
-      return;
+    if (batch.empty()) return;
     auto currentBatch = std::move(batch);
     batch.clear();
     batch.reserve(2000);
@@ -51,9 +50,9 @@ ScanStats Scanner::scanGitRepository(const std::filesystem::path &repoPath,
     threadPool_.enqueue([this, items = std::move(currentBatch)]() {
       std::vector<SecretFinding> localFindings;
       localFindings.reserve(16);
-      for (const auto &item : items) {
-        ruleEngine_.scanLine(item.line, item.file, item.lineNum, item.commit,
-                             item.author, item.date, localFindings);
+      for (const auto& item : items) {
+        ruleEngine_.scanLine(item.line, item.file, item.lineNum, item.commit, item.author,
+                             item.date, localFindings);
       }
       if (!localFindings.empty()) {
         addFindings(std::move(localFindings));
@@ -63,15 +62,12 @@ ScanStats Scanner::scanGitRepository(const std::filesystem::path &repoPath,
 
   GitLogParser::parseRepository(
       repoPath,
-      [&](const DiffLine &dl) {
+      [&](const DiffLine& dl) {
         stats.totalLines++;
-        if (!dl.commitHash.empty())
-          uniqueCommits.insert(dl.commitHash);
-        if (!dl.filePath.empty())
-          uniqueFiles.insert(dl.filePath);
+        if (!dl.commitHash.empty()) uniqueCommits.insert(dl.commitHash);
+        if (!dl.filePath.empty()) uniqueFiles.insert(dl.filePath);
 
-        batch.push_back({dl.line, dl.filePath, dl.lineNumber, dl.commitHash,
-                         dl.author, dl.date});
+        batch.push_back({dl.line, dl.filePath, dl.lineNumber, dl.commitHash, dl.author, dl.date});
         if (batch.size() >= 2000) {
           dispatchBatch();
         }
@@ -82,8 +78,7 @@ ScanStats Scanner::scanGitRepository(const std::filesystem::path &repoPath,
   threadPool_.waitAll();
 
   auto endTime = std::chrono::steady_clock::now();
-  stats.scanDurationMs =
-      std::chrono::duration<double, std::milli>(endTime - startTime).count();
+  stats.scanDurationMs = std::chrono::duration<double, std::milli>(endTime - startTime).count();
   stats.totalCommits = uniqueCommits.size();
   stats.totalFiles = uniqueFiles.size();
   stats.totalFindings = findings_.size();
@@ -91,7 +86,7 @@ ScanStats Scanner::scanGitRepository(const std::filesystem::path &repoPath,
   return stats;
 }
 
-ScanStats Scanner::scanDirectory(const std::filesystem::path &dirPath) {
+ScanStats Scanner::scanDirectory(const std::filesystem::path& dirPath) {
   clearFindings();
   ScanStats stats;
   auto startTime = std::chrono::steady_clock::now();
@@ -108,8 +103,7 @@ ScanStats Scanner::scanDirectory(const std::filesystem::path &dirPath) {
   batch.reserve(2000);
 
   auto dispatchBatch = [this, &batch]() {
-    if (batch.empty())
-      return;
+    if (batch.empty()) return;
     auto currentBatch = std::move(batch);
     batch.clear();
     batch.reserve(2000);
@@ -117,9 +111,8 @@ ScanStats Scanner::scanDirectory(const std::filesystem::path &dirPath) {
     threadPool_.enqueue([this, items = std::move(currentBatch)]() {
       std::vector<SecretFinding> localFindings;
       localFindings.reserve(16);
-      for (const auto &item : items) {
-        ruleEngine_.scanLine(item.line, item.file, item.lineNum, "", "", "",
-                             localFindings);
+      for (const auto& item : items) {
+        ruleEngine_.scanLine(item.line, item.file, item.lineNum, "", "", "", localFindings);
       }
       if (!localFindings.empty()) {
         addFindings(std::move(localFindings));
@@ -127,7 +120,7 @@ ScanStats Scanner::scanDirectory(const std::filesystem::path &dirPath) {
     });
   };
 
-  DirectoryWalker::walkDirectory(dirPath, [&](const FileLine &fl) {
+  DirectoryWalker::walkDirectory(dirPath, [&](const FileLine& fl) {
     stats.totalLines++;
     uniqueFiles.insert(fl.filePath);
 
@@ -141,38 +134,35 @@ ScanStats Scanner::scanDirectory(const std::filesystem::path &dirPath) {
   threadPool_.waitAll();
 
   auto endTime = std::chrono::steady_clock::now();
-  stats.scanDurationMs =
-      std::chrono::duration<double, std::milli>(endTime - startTime).count();
+  stats.scanDurationMs = std::chrono::duration<double, std::milli>(endTime - startTime).count();
   stats.totalFiles = uniqueFiles.size();
   stats.totalFindings = findings_.size();
 
   return stats;
 }
 
-ScanStats Scanner::scanFile(const std::filesystem::path &filePath) {
+ScanStats Scanner::scanFile(const std::filesystem::path& filePath) {
   clearFindings();
   ScanStats stats;
   auto startTime = std::chrono::steady_clock::now();
 
   std::vector<SecretFinding> localFindings;
-  DirectoryWalker::walkFile(filePath, [&](const FileLine &fl) {
+  DirectoryWalker::walkFile(filePath, [&](const FileLine& fl) {
     stats.totalLines++;
-    ruleEngine_.scanLine(fl.line, fl.filePath, fl.lineNumber, "", "", "",
-                         localFindings);
+    ruleEngine_.scanLine(fl.line, fl.filePath, fl.lineNumber, "", "", "", localFindings);
   });
 
   addFindings(std::move(localFindings));
 
   auto endTime = std::chrono::steady_clock::now();
-  stats.scanDurationMs =
-      std::chrono::duration<double, std::milli>(endTime - startTime).count();
+  stats.scanDurationMs = std::chrono::duration<double, std::milli>(endTime - startTime).count();
   stats.totalFiles = 1;
   stats.totalFindings = findings_.size();
 
   return stats;
 }
 
-ScanStats Scanner::scanStream(std::istream &is, const std::string &streamName) {
+ScanStats Scanner::scanStream(std::istream& is, const std::string& streamName) {
   clearFindings();
   ScanStats stats;
   auto startTime = std::chrono::steady_clock::now();
@@ -183,19 +173,17 @@ ScanStats Scanner::scanStream(std::istream &is, const std::string &streamName) {
 
   while (std::getline(is, line)) {
     stats.totalLines++;
-    ruleEngine_.scanLine(line, streamName, lineNum++, "", "", "",
-                         localFindings);
+    ruleEngine_.scanLine(line, streamName, lineNum++, "", "", "", localFindings);
   }
 
   addFindings(std::move(localFindings));
 
   auto endTime = std::chrono::steady_clock::now();
-  stats.scanDurationMs =
-      std::chrono::duration<double, std::milli>(endTime - startTime).count();
+  stats.scanDurationMs = std::chrono::duration<double, std::milli>(endTime - startTime).count();
   stats.totalFiles = 1;
   stats.totalFindings = findings_.size();
 
   return stats;
 }
 
-} // namespace scanner
+}  // namespace scanner

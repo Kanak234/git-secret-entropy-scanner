@@ -1,13 +1,12 @@
 #include "scanner/EntropyCalculator.hpp"
+
 #include <array>
 #include <cctype>
 
 namespace scanner {
 
-double
-EntropyCalculator::calculateShannonEntropy(std::string_view text) noexcept {
-  if (text.empty())
-    return 0.0;
+double EntropyCalculator::calculateShannonEntropy(std::string_view text) noexcept {
+  if (text.empty()) return 0.0;
 
   std::array<uint32_t, 256> counts{};
   for (char c : text) {
@@ -28,39 +27,30 @@ EntropyCalculator::calculateShannonEntropy(std::string_view text) noexcept {
 }
 
 CharSetType EntropyCalculator::detectCharSet(std::string_view text) noexcept {
-  if (text.empty())
-    return CharSetType::Generic;
+  if (text.empty()) return CharSetType::Generic;
 
   bool allHex = true;
   bool allBase64 = true;
 
   for (char c : text) {
     bool isHexChar = std::isxdigit(static_cast<unsigned char>(c));
-    bool isBase64Char = std::isalnum(static_cast<unsigned char>(c)) ||
-                        c == '+' || c == '/' || c == '=' || c == '_' ||
-                        c == '-';
+    bool isBase64Char = std::isalnum(static_cast<unsigned char>(c)) || c == '+' || c == '/' ||
+                        c == '=' || c == '_' || c == '-';
 
-    if (!isHexChar)
-      allHex = false;
-    if (!isBase64Char)
-      allBase64 = false;
+    if (!isHexChar) allHex = false;
+    if (!isBase64Char) allBase64 = false;
 
-    if (!allBase64)
-      return CharSetType::Generic;
+    if (!allBase64) return CharSetType::Generic;
   }
 
-  if (allHex)
-    return CharSetType::Hex;
-  if (allBase64)
-    return CharSetType::Base64;
+  if (allHex) return CharSetType::Hex;
+  if (allBase64) return CharSetType::Base64;
   return CharSetType::Generic;
 }
 
-bool EntropyCalculator::isHighEntropy(std::string_view text,
-                                      double hexThreshold,
+bool EntropyCalculator::isHighEntropy(std::string_view text, double hexThreshold,
                                       double base64Threshold) noexcept {
-  if (text.size() < 16)
-    return false;
+  if (text.size() < 16) return false;
 
   CharSetType type = detectCharSet(text);
   double h = calculateShannonEntropy(text);
@@ -75,4 +65,4 @@ bool EntropyCalculator::isHighEntropy(std::string_view text,
   }
 }
 
-} // namespace scanner
+}  // namespace scanner

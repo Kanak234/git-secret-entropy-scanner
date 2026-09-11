@@ -1,24 +1,22 @@
-#include "scanner/EntropyCalculator.hpp"
 #include <cassert>
 #include <cmath>
 #include <iostream>
 
+#include "scanner/EntropyCalculator.hpp"
+
 void testShannonEntropy() {
   // 1. Single repeated character must have zero entropy
-  double hZero =
-      scanner::EntropyCalculator::calculateShannonEntropy("aaaaaaaaaaaaaaaa");
+  double hZero = scanner::EntropyCalculator::calculateShannonEntropy("aaaaaaaaaaaaaaaa");
   assert(std::abs(hZero - 0.0) < 1e-9);
   (void)hZero;
 
   // 2. 16 distinct characters with uniform distribution: H = log2(16) = 4.0
-  double hUniform16 =
-      scanner::EntropyCalculator::calculateShannonEntropy("0123456789abcdef");
+  double hUniform16 = scanner::EntropyCalculator::calculateShannonEntropy("0123456789abcdef");
   assert(std::abs(hUniform16 - 4.0) < 1e-9);
   (void)hUniform16;
 
   // 3. Two equally distributed characters: H = 1.0
-  double hBinary =
-      scanner::EntropyCalculator::calculateShannonEntropy("abababababababab");
+  double hBinary = scanner::EntropyCalculator::calculateShannonEntropy("abababababababab");
   assert(std::abs(hBinary - 1.0) < 1e-9);
   (void)hBinary;
 
@@ -28,20 +26,16 @@ void testShannonEntropy() {
 void testCharSetDetection() {
   using scanner::CharSetType;
 
-  assert(scanner::EntropyCalculator::detectCharSet("0123456789abcdefABCDEF") ==
-         CharSetType::Hex);
-  assert(scanner::EntropyCalculator::detectCharSet("a1B2+c3/d4==") ==
-         CharSetType::Base64);
-  assert(scanner::EntropyCalculator::detectCharSet("hello world! @#$") ==
-         CharSetType::Generic);
+  assert(scanner::EntropyCalculator::detectCharSet("0123456789abcdefABCDEF") == CharSetType::Hex);
+  assert(scanner::EntropyCalculator::detectCharSet("a1B2+c3/d4==") == CharSetType::Base64);
+  assert(scanner::EntropyCalculator::detectCharSet("hello world! @#$") == CharSetType::Generic);
 
   std::cout << "testCharSetDetection: PASSED\n";
 }
 
 void testHighEntropyThresholds() {
   // High-entropy random Base64 string
-  std::string highEntropyB64 =
-      "dGhpcyBpcyBhIHJhbmRvbSBzZWNyZXQga2V5IDEyMzQ1Njc4OTA=";
+  std::string highEntropyB64 = "dGhpcyBpcyBhIHJhbmRvbSBzZWNyZXQga2V5IDEyMzQ1Njc4OTA=";
   assert(scanner::EntropyCalculator::isHighEntropy(highEntropyB64));
 
   // Low-entropy repeated Base64

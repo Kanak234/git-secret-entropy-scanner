@@ -1,4 +1,5 @@
 #include "scanner/FalsePositiveFilter.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -8,17 +9,14 @@ namespace scanner {
 
 bool FalsePositiveFilter::isUUID(std::string_view text) noexcept {
   // 8-4-4-4-12 format: 36 characters
-  if (text.size() != 36)
-    return false;
+  if (text.size() != 36) return false;
 
   for (size_t i = 0; i < 36; ++i) {
     char c = text[i];
     if (i == 8 || i == 13 || i == 18 || i == 23) {
-      if (c != '-')
-        return false;
+      if (c != '-') return false;
     } else {
-      if (!std::isxdigit(static_cast<unsigned char>(c)))
-        return false;
+      if (!std::isxdigit(static_cast<unsigned char>(c))) return false;
     }
   }
   return true;
@@ -26,12 +24,10 @@ bool FalsePositiveFilter::isUUID(std::string_view text) noexcept {
 
 bool FalsePositiveFilter::isCommitHash(std::string_view text) noexcept {
   // 40 chars (SHA-1) or 64 chars (SHA-256)
-  if (text.size() != 40 && text.size() != 64)
-    return false;
+  if (text.size() != 40 && text.size() != 64) return false;
 
   for (char c : text) {
-    if (!std::isxdigit(static_cast<unsigned char>(c)))
-      return false;
+    if (!std::isxdigit(static_cast<unsigned char>(c))) return false;
   }
   return true;
 }
@@ -40,8 +36,7 @@ bool FalsePositiveFilter::isPlaceholder(std::string_view text) noexcept {
   std::string lower;
   lower.reserve(text.size());
   for (char c : text) {
-    lower.push_back(
-        static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+    lower.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
   }
 
   static constexpr std::string_view placeholders[] = {
@@ -59,8 +54,7 @@ bool FalsePositiveFilter::isPlaceholder(std::string_view text) noexcept {
 }
 
 bool FalsePositiveFilter::isLowDiversity(std::string_view text) noexcept {
-  if (text.empty())
-    return true;
+  if (text.empty()) return true;
 
   std::array<bool, 256> seen{};
   size_t uniqueCount = 0;
@@ -94,23 +88,17 @@ bool FalsePositiveFilter::isIgnoredPath(std::string_view filePath) noexcept {
   return false;
 }
 
-bool FalsePositiveFilter::isFalsePositive(std::string_view candidate,
-                                          std::string_view filePath,
+bool FalsePositiveFilter::isFalsePositive(std::string_view candidate, std::string_view filePath,
                                           std::string_view fullLine) noexcept {
   (void)fullLine;
 
-  if (isIgnoredPath(filePath))
-    return true;
-  if (isUUID(candidate))
-    return true;
-  if (isCommitHash(candidate))
-    return true;
-  if (isPlaceholder(candidate))
-    return true;
-  if (isLowDiversity(candidate))
-    return true;
+  if (isIgnoredPath(filePath)) return true;
+  if (isUUID(candidate)) return true;
+  if (isCommitHash(candidate)) return true;
+  if (isPlaceholder(candidate)) return true;
+  if (isLowDiversity(candidate)) return true;
 
   return false;
 }
 
-} // namespace scanner
+}  // namespace scanner

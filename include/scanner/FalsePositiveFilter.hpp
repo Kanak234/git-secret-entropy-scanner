@@ -5,9 +5,8 @@
 namespace scanner {
 
 class FalsePositiveFilter {
-public:
-  [[nodiscard]] static bool isFalsePositive(std::string_view candidate,
-                                            std::string_view filePath,
+ public:
+  [[nodiscard]] static bool isFalsePositive(std::string_view candidate, std::string_view filePath,
                                             std::string_view fullLine) noexcept;
 
   [[nodiscard]] static bool isUUID(std::string_view text) noexcept;
@@ -17,4 +16,4 @@ public:
   [[nodiscard]] static bool isIgnoredPath(std::string_view filePath) noexcept;
 };
 
-} // namespace scanner
+}  // namespace scanner

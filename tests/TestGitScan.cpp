@@ -1,9 +1,10 @@
-#include "scanner/Scanner.hpp"
 #include <cassert>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+
+#include "scanner/Scanner.hpp"
 
 void testGitHistoryScanning() {
   std::filesystem::path testRepo =
@@ -13,8 +14,9 @@ void testGitHistoryScanning() {
 
   // Initialize test git repository
   std::string initCmd = "git -C \"" + testRepo.string() + "\" init >/dev/null 2>&1";
-  std::string configCmd = "git -C \"" + testRepo.string() + "\" config user.name \"AuditTest\" && " +
-                          "git -C \"" + testRepo.string() + "\" config user.email \"audit@example.com\"";
+  std::string configCmd = "git -C \"" + testRepo.string() +
+                          "\" config user.name \"AuditTest\" && " + "git -C \"" +
+                          testRepo.string() + "\" config user.email \"audit@example.com\"";
   int ret1 = std::system(initCmd.c_str());
   int ret2 = std::system(configCmd.c_str());
   (void)ret1;
@@ -25,9 +27,8 @@ void testGitHistoryScanning() {
     std::ofstream f(testRepo / "app.py");
     f << "def hello():\n    return 'Hello, World!'\n";
   }
-  int ret3 = std::system(("git -C \"" + testRepo.string() +
-                          "\" add app.py && git -C \"" + testRepo.string() +
-                          "\" commit -m \"Initial commit\" >/dev/null 2>&1")
+  int ret3 = std::system(("git -C \"" + testRepo.string() + "\" add app.py && git -C \"" +
+                          testRepo.string() + "\" commit -m \"Initial commit\" >/dev/null 2>&1")
                              .c_str());
   (void)ret3;
 
@@ -37,9 +38,8 @@ void testGitHistoryScanning() {
     std::ofstream f(testRepo / "config.py");
     f << "# Leaked credentials\nAWS_KEY = \"" << testAwsKey << "\"\n";
   }
-  int ret4 = std::system(("git -C \"" + testRepo.string() +
-                          "\" add config.py && git -C \"" + testRepo.string() +
-                          "\" commit -m \"Add aws config\" >/dev/null 2>&1")
+  int ret4 = std::system(("git -C \"" + testRepo.string() + "\" add config.py && git -C \"" +
+                          testRepo.string() + "\" commit -m \"Add aws config\" >/dev/null 2>&1")
                              .c_str());
   (void)ret4;
 
@@ -49,9 +49,8 @@ void testGitHistoryScanning() {
     std::ofstream f(testRepo / ".env");
     f << "GITHUB_TOKEN=" << testGhpKey << "\n";
   }
-  int ret5 = std::system(("git -C \"" + testRepo.string() +
-                          "\" add .env && git -C \"" + testRepo.string() +
-                          "\" commit -m \"Add github token\" >/dev/null 2>&1")
+  int ret5 = std::system(("git -C \"" + testRepo.string() + "\" add .env && git -C \"" +
+                          testRepo.string() + "\" commit -m \"Add github token\" >/dev/null 2>&1")
                              .c_str());
   (void)ret5;
 
@@ -60,12 +59,11 @@ void testGitHistoryScanning() {
     std::ofstream f(testRepo / "config.py");
     f << "# Fixed credentials\nAWS_KEY = os.getenv('AWS_KEY')\n";
   }
-  int ret6 = std::system(
-      ("git -C \"" + testRepo.string() +
-       "\" rm .env >/dev/null 2>&1 && git -C \"" + testRepo.string() +
-       "\" add config.py && git -C \"" + testRepo.string() +
-       "\" commit -m \"Remove secrets from tree\" >/dev/null 2>&1")
-          .c_str());
+  int ret6 =
+      std::system(("git -C \"" + testRepo.string() + "\" rm .env >/dev/null 2>&1 && git -C \"" +
+                   testRepo.string() + "\" add config.py && git -C \"" + testRepo.string() +
+                   "\" commit -m \"Remove secrets from tree\" >/dev/null 2>&1")
+                      .c_str());
   (void)ret6;
 
   // Now run Scanner on git history!
@@ -81,10 +79,8 @@ void testGitHistoryScanning() {
   bool foundGhp = false;
 
   for (const auto& finding : scanner.findings()) {
-    std::cout << "  -> Found: [" << finding.ruleId << "] in "
-              << finding.filePath
-              << " (Commit " << finding.commitHash.substr(0, 8)
-              << "): " << finding.maskedText << "\n";
+    std::cout << "  -> Found: [" << finding.ruleId << "] in " << finding.filePath << " (Commit "
+              << finding.commitHash.substr(0, 8) << "): " << finding.maskedText << "\n";
     if (finding.ruleId == "AWS_ACCESS_KEY" && finding.matchedText == testAwsKey) {
       foundAws = true;
     }
