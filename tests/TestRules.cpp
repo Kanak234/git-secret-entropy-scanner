@@ -20,31 +20,31 @@ void testVendorSignatures() {
   std::vector<scanner::SecretFinding> findings;
 
   // 1. AWS Access Key
-  std::string awsToken = std::string("AK") + "IA1234567890ABCDEF";
+  std::string awsToken = std::string("AK") + "IA9876543210ZYXWVU";
   engine.scanLine("aws_key = " + awsToken, "config.py", 10, "c1", "Alice", "2026-01-01", findings);
   assert(!findings.empty());
   assert(findings.back().ruleId == "AWS_ACCESS_KEY");
   assert(findings.back().matchedText == awsToken);
 
   // 2. GitHub PAT
-  std::string ghpToken = std::string("gh") + "p_1234567890abcdefghijklmnopqrstuvwxyz";
-  engine.scanLine("GITHUB_TOKEN=" + ghpToken, ".env", 5, "c2", "Bob", "2026-01-02", findings);
+  std::string ghpToken = std::string("gh") + "p_q1w2e3r4t5y6u7i8o9p0a1s2d3f4g5h6j7k8";
+  engine.scanLine("gh_pat = " + ghpToken, ".env", 5, "c2", "Bob", "2026-01-02", findings);
   assert(findings.back().ruleId == "GITHUB_PAT");
 
   // 3. Slack Token
-  std::string slackToken = std::string("xo") + "xb-123456789012-123456789012-abcdef123456";
+  std::string slackToken = std::string("xo") + "xb-234567890123-345678901234-fedcba654321";
   engine.scanLine("slack_token = \"" + slackToken + "\"", "bot.go", 12, "c3", "Carol", "2026-01-03",
                   findings);
   assert(findings.back().ruleId == "SLACK_TOKEN");
 
   // 4. Stripe Key (Constructed dynamically to prevent GitHub push protection triggers)
-  std::string stripeToken = std::string("sk_") + "live_" + "1234567890abcdef12345678";
+  std::string stripeToken = std::string("sk_") + "live_" + "9876543210fedcba98765432";
   engine.scanLine("stripe.api_key = '" + stripeToken + "'", "stripe.js", 8, "c4", "Dave",
                   "2026-01-04", findings);
   assert(findings.back().ruleId == "STRIPE_KEY");
 
   // 5. Google API Key
-  std::string gcpToken = std::string("AI") + "zaSyD-123456789012345678901234567890";
+  std::string gcpToken = std::string("AI") + "zaSyD_8u7y6t5r4e3w2q1z9x8c7v6b5n4m3k2";
   engine.scanLine("const GOOGLE_KEY = \"" + gcpToken + "\";", "app.ts", 4, "c5", "Eve",
                   "2026-01-05", findings);
   assert(findings.back().ruleId == "GOOGLE_API_KEY");

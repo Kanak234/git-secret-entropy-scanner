@@ -1,6 +1,8 @@
 # Git Secret Entropy Scanner
 
 [![CI](https://github.com/Kanak234/git-secret-entropy-scanner/actions/workflows/ci.yml/badge.svg)](https://github.com/Kanak234/git-secret-entropy-scanner/actions/workflows/ci.yml)
+[![CodeQL Analysis](https://github.com/Kanak234/git-secret-entropy-scanner/actions/workflows/codeql.yml/badge.svg)](https://github.com/Kanak234/git-secret-entropy-scanner/actions/workflows/codeql.yml)
+[![Coverage](https://img.shields.io/badge/coverage-%3E80%25-brightgreen.svg)](#building-and-testing)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![C++ Standard](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
 

@@ -102,12 +102,29 @@ void GitLogParser::parseStream(std::istream& is, const LineCallback& callback) {
 
 void GitLogParser::parseRepository(const std::filesystem::path& repoPath,
                                    const LineCallback& callback, const std::string& revisionRange) {
-  std::string cmd = "git -C \"" + repoPath.string() + "\" log -p --full-history --date=iso " +
-                    revisionRange + " 2>/dev/null";
+  std::string repoStr = repoPath.string();
+  if (repoStr.empty() || repoStr.find_first_of(";&|`$\"'\n\r") != std::string::npos) {
+    throw std::invalid_argument("Invalid repository path for git inspection");
+  }
+  if (!std::filesystem::exists(repoPath) || !std::filesystem::is_directory(repoPath)) {
+    throw std::invalid_argument("Repository path does not exist or is not a directory: " + repoStr);
+  }
+
+  if (!revisionRange.empty()) {
+    for (char c : revisionRange) {
+      if (!std::isalnum(static_cast<unsigned char>(c)) && c != '_' && c != '-' && c != '.' &&
+          c != '^' && c != '~' && c != '@' && c != '/' && c != ':' && c != ' ') {
+        throw std::invalid_argument("Invalid characters in revision range: " + revisionRange);
+      }
+    }
+  }
+
+  std::string cmd = "git -C \"" + repoStr + "\" log -p --full-history --date=iso " + revisionRange +
+                    " 2>/dev/null";
 
   std::unique_ptr<FILE, PipeDeleter> pipe(popen(cmd.c_str(), "r"));
   if (!pipe) {
-    throw std::runtime_error("Failed to execute git log command on: " + repoPath.string());
+    throw std::runtime_error("Failed to execute git log command on: " + repoStr);
   }
 
   GitLogParser parser;

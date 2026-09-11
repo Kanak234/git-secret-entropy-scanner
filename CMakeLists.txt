@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
+
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(
         -Wall -Wextra -Wpedantic
@@ -12,6 +14,11 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         -Wshadow -Wnon-virtual-dtor
         -O3
     )
+endif()
+
+if (ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(--coverage -O0 -g)
+    add_link_options(--coverage)
 endif()
 
 find_package(Threads REQUIRED)
@@ -57,3 +64,7 @@ add_test(NAME TestFalsePositives COMMAND test_false_positives)
 add_executable(test_git_scan tests/TestGitScan.cpp)
 target_link_libraries(test_git_scan PRIVATE scanner_core)
 add_test(NAME TestGitScan COMMAND test_git_scan)
+
+add_executable(test_coverage_edge_cases tests/TestCoverageEdgeCases.cpp)
+target_link_libraries(test_coverage_edge_cases PRIVATE scanner_core)
+add_test(NAME TestCoverageEdgeCases COMMAND test_coverage_edge_cases)
