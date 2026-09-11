@@ -1,5 +1,10 @@
 #include "scanner/GitLogParser.hpp"
 
+#include <fcntl.h>
+#include <spawn.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
 #include <array>
 #include <cstdio>
 #include <cstdlib>
@@ -7,17 +12,9 @@
 #include <memory>
 #include <stdexcept>
 
-namespace scanner {
+extern "C" char** environ;
 
-namespace {
-struct PipeDeleter {
-  void operator()(FILE* fp) const noexcept {
-    if (fp) {
-      pclose(fp);
-    }
-  }
-};
-}  // namespace
+namespace scanner {
 
 void GitLogParser::parseLine(std::string_view line, const LineCallback& callback) {
   if (line.starts_with("commit ")) {
@@ -119,12 +116,46 @@ void GitLogParser::parseRepository(const std::filesystem::path& repoPath,
     }
   }
 
-  std::string cmd = "git -C \"" + repoStr + "\" log -p --full-history --date=iso " + revisionRange +
-                    " 2>/dev/null";
+  int pipefd[2];
+  if (pipe(pipefd) != 0) {
+    throw std::runtime_error("Failed to create pipe for git execution");
+  }
 
-  std::unique_ptr<FILE, PipeDeleter> pipe(popen(cmd.c_str(), "r"));
-  if (!pipe) {
-    throw std::runtime_error("Failed to execute git log command on: " + repoStr);
+  posix_spawn_file_actions_t actions;
+  posix_spawn_file_actions_init(&actions);
+  posix_spawn_file_actions_addclose(&actions, pipefd[0]);
+  posix_spawn_file_actions_adddup2(&actions, pipefd[1], STDOUT_FILENO);
+  posix_spawn_file_actions_addclose(&actions, pipefd[1]);
+  posix_spawn_file_actions_addopen(&actions, STDERR_FILENO, "/dev/null", O_WRONLY, 0);
+
+  std::vector<std::string> args = {"git",       "-C", repoStr, "log", "-p", "--full-history",
+                                   "--date=iso"};
+  if (!revisionRange.empty()) {
+    args.push_back(revisionRange);
+  }
+
+  std::vector<char*> c_args;
+  c_args.reserve(args.size() + 1);
+  for (auto& s : args) {
+    c_args.push_back(s.data());
+  }
+  c_args.push_back(nullptr);
+
+  pid_t pid;
+  int spawnStatus = posix_spawnp(&pid, "git", &actions, nullptr, c_args.data(), ::environ);
+  posix_spawn_file_actions_destroy(&actions);
+  close(pipefd[1]);
+
+  if (spawnStatus != 0) {
+    close(pipefd[0]);
+    throw std::runtime_error("Failed to spawn git process for: " + repoStr);
+  }
+
+  FILE* fp = fdopen(pipefd[0], "r");
+  if (!fp) {
+    close(pipefd[0]);
+    waitpid(pid, nullptr, 0);
+    throw std::runtime_error("Failed to read git process output for: " + repoStr);
   }
 
   GitLogParser parser;
@@ -132,7 +163,7 @@ void GitLogParser::parseRepository(const std::filesystem::path& repoPath,
   size_t linecap = 0;
   ssize_t linelen = 0;
 
-  while ((linelen = getline(&linebuf, &linecap, pipe.get())) != -1) {
+  while ((linelen = getline(&linebuf, &linecap, fp)) != -1) {
     if (linelen > 0 && linebuf[linelen - 1] == '\n') {
       linebuf[linelen - 1] = '\0';
       linelen--;
@@ -147,6 +178,9 @@ void GitLogParser::parseRepository(const std::filesystem::path& repoPath,
   if (linebuf) {
     std::free(linebuf);
   }
+
+  fclose(fp);
+  waitpid(pid, nullptr, 0);
 }
 
 }  // namespace scanner

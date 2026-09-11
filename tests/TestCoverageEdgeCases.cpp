@@ -109,7 +109,8 @@ void testRuleEngineEdgeCases() {
   assert(!findings.empty());
   assert(findings.back().ruleId == "STRIPE_KEY");
 
-  engine.scanLine("-----BEGIN RSA PRIVATE KEY-----", "id_rsa", 1, "c3", "author", "date", findings);
+  std::string pemHeader = std::string("-----BEGIN ") + "RSA PRIVATE KEY-----";
+  engine.scanLine(pemHeader, "id_rsa", 1, "c3", "author", "date", findings);
   assert(!findings.empty());
   assert(findings.back().ruleId == "PEM_PRIVATE_KEY");
 
