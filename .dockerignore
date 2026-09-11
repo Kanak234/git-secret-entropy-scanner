@@ -1,0 +1,15 @@
+.git
+.github
+build
+build*
+dist
+*.o
+*.a
+*.so
+*.gcda
+*.gcno
+*.gcov
+Dockerfile*
+.dockerignore
+*.md
+docs/

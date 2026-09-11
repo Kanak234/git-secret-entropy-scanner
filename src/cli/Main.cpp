@@ -1,13 +1,75 @@
+#include <atomic>
 #include <chrono>
+#include <climits>
+#include <csignal>
+#include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
+#include "scanner/EntropyCalculator.hpp"
 #include "scanner/Reporter.hpp"
 #include "scanner/Scanner.hpp"
 
 namespace {
+
+std::atomic<bool> g_stopRequested{false};
+
+void signalHandler(int signum) {
+  (void)signum;
+  g_stopRequested.store(true);
+}
+
+std::string sanitizePath(const std::string& input) {
+  if (input.empty()) {
+    throw std::invalid_argument("Input path cannot be empty");
+  }
+  if (input.find('\0') != std::string::npos) {
+    throw std::invalid_argument("Input path contains null byte");
+  }
+  char resolved[PATH_MAX];
+  if (realpath(input.c_str(), resolved) != nullptr) {
+    return std::string(resolved);
+  }
+  std::filesystem::path p(input);
+  std::error_code ec;
+  auto norm = std::filesystem::weakly_canonical(p, ec);
+  if (!ec) {
+    return norm.string();
+  }
+  return p.lexically_normal().string();
+}
+
+int cmdHealth() {
+  try {
+    scanner::Scanner testScanner(1);
+    std::string sample = "test_string_with_uniform_distribution_0123456789";
+    double entropy = scanner::EntropyCalculator::calculateShannonEntropy(sample);
+    if (entropy <= 0.0) {
+      std::cerr << "Health check failure: entropy calculation produced zero\n";
+      return 1;
+    }
+
+    std::vector<scanner::SecretFinding> localFindings;
+    std::string testAwsKey = std::string("AK") + "IA9876543210ZYXWVU";
+    scanner::RuleEngine ruleEngine;
+    ruleEngine.scanLine("key = " + testAwsKey, "health.txt", 1, "", "", "", localFindings);
+    if (localFindings.empty()) {
+      std::cerr << "Health check failure: rule engine did not detect pattern\n";
+      return 1;
+    }
+
+    std::cout << "{\"status\":\"healthy\",\"engine\":\"git_secret_entropy_scanner\",\"version\":"
+                 "\"1.0.0\"}\n";
+    return 0;
+  } catch (const std::exception& e) {
+    std::cerr << "Health check exception: " << e.what() << "\n";
+    return 1;
+  }
+}
 
 void printUsage() {
   std::cout << "========================================================================\n";
@@ -22,6 +84,10 @@ void printUsage() {
   std::cout << "  scan-file <filePath> [-o out.json]                Audit single source file\n";
   std::cout
       << "  bench     [lines=1000000]                         Benchmark scanning throughput\n";
+  std::cout
+      << "  health                                            Execute system self-diagnostics\n";
+  std::cout
+      << "  -v, --version, version                            Show engine version information\n";
   std::cout << "========================================================================\n";
 }
 
@@ -133,6 +199,9 @@ int cmdBench(size_t lineCount) {
 }  // namespace
 
 int main(int argc, char* argv[]) {
+  std::signal(SIGINT, signalHandler);
+  std::signal(SIGTERM, signalHandler);
+
   if (argc < 2) {
     printUsage();
     return 1;
@@ -140,43 +209,64 @@ int main(int argc, char* argv[]) {
 
   std::string cmd = argv[1];
 
-  if (cmd == "scan-git") {
-    std::string repo = (argc >= 3 && argv[2][0] != '-') ? argv[2] : ".";
-    std::string rev = "HEAD";
-    std::string jsonOut;
-    for (int i = 2; i < argc; ++i) {
-      std::string arg = argv[i];
-      if (arg == "-o" && i + 1 < argc)
-        jsonOut = argv[++i];
-      else if (arg != repo && arg[0] != '-')
-        rev = arg;
-    }
-    return cmdScanGit(repo, rev, jsonOut);
+  if (cmd == "health") {
+    return cmdHealth();
   }
 
-  if (cmd == "scan-dir") {
-    std::string dir = (argc >= 3 && argv[2][0] != '-') ? argv[2] : ".";
-    std::string jsonOut;
-    for (int i = 2; i < argc; ++i) {
-      std::string arg = argv[i];
-      if (arg == "-o" && i + 1 < argc) jsonOut = argv[++i];
-    }
-    return cmdScanDir(dir, jsonOut);
+  if (cmd == "-v" || cmd == "--version" || cmd == "version") {
+    std::cout << "git_secret_entropy_scanner 1.0.0\n";
+    return 0;
   }
 
-  if (cmd == "scan-file" && argc >= 3) {
-    std::string file = argv[2];
-    std::string jsonOut;
-    for (int i = 3; i < argc; ++i) {
-      std::string arg = argv[i];
-      if (arg == "-o" && i + 1 < argc) jsonOut = argv[++i];
+  try {
+    if (cmd == "scan-git") {
+      std::string rawRepo = (argc >= 3 && argv[2][0] != '-') ? argv[2] : ".";
+      std::string repo = sanitizePath(rawRepo);
+      std::string rev = "HEAD";
+      std::string jsonOut;
+      for (int i = 2; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "-o" && i + 1 < argc) {
+          jsonOut = sanitizePath(argv[++i]);
+        } else if (arg != rawRepo && arg[0] != '-') {
+          rev = arg;
+        }
+      }
+      return cmdScanGit(repo, rev, jsonOut);
     }
-    return cmdScanFile(file, jsonOut);
-  }
 
-  if (cmd == "bench") {
-    size_t lines = (argc >= 3) ? static_cast<size_t>(std::stoul(argv[2])) : 1000000;
-    return cmdBench(lines);
+    if (cmd == "scan-dir") {
+      std::string rawDir = (argc >= 3 && argv[2][0] != '-') ? argv[2] : ".";
+      std::string dir = sanitizePath(rawDir);
+      std::string jsonOut;
+      for (int i = 2; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "-o" && i + 1 < argc) {
+          jsonOut = sanitizePath(argv[++i]);
+        }
+      }
+      return cmdScanDir(dir, jsonOut);
+    }
+
+    if (cmd == "scan-file" && argc >= 3) {
+      std::string file = sanitizePath(argv[2]);
+      std::string jsonOut;
+      for (int i = 3; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "-o" && i + 1 < argc) {
+          jsonOut = sanitizePath(argv[++i]);
+        }
+      }
+      return cmdScanFile(file, jsonOut);
+    }
+
+    if (cmd == "bench") {
+      size_t lines = (argc >= 3) ? static_cast<size_t>(std::stoul(argv[2])) : 1000000;
+      return cmdBench(lines);
+    }
+  } catch (const std::exception& e) {
+    std::cerr << "Error: " << e.what() << "\n";
+    return 1;
   }
 
   printUsage();
