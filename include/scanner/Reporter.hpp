@@ -1,25 +1,23 @@
 #pragma once
 
-#include "scanner/SecretFinding.hpp"
 #include <filesystem>
 #include <iostream>
 #include <span>
 
+#include "scanner/SecretFinding.hpp"
+
 namespace scanner {
 
 class Reporter {
-public:
-  static void printConsoleReport(std::span<const SecretFinding> findings,
-                                 const ScanStats &stats,
-                                 std::ostream &os = std::cout);
+ public:
+  static void printConsoleReport(std::span<const SecretFinding> findings, const ScanStats& stats,
+                                 std::ostream& os = std::cout);
 
-  static void exportJsonReport(std::span<const SecretFinding> findings,
-                               const ScanStats &stats,
-                               std::ostream &os = std::cout);
+  static void exportJsonReport(std::span<const SecretFinding> findings, const ScanStats& stats,
+                               std::ostream& os = std::cout);
 
-  static void exportJsonFile(std::span<const SecretFinding> findings,
-                             const ScanStats &stats,
-                             const std::filesystem::path &outPath);
+  static void exportJsonFile(std::span<const SecretFinding> findings, const ScanStats& stats,
+                             const std::filesystem::path& outPath);
 };
 
-} // namespace scanner
+}  // namespace scanner

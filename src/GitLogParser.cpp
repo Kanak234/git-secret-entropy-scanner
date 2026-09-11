@@ -1,4 +1,5 @@
 #include "scanner/GitLogParser.hpp"
+
 #include <array>
 #include <cstdio>
 #include <cstdlib>
@@ -10,16 +11,15 @@ namespace scanner {
 
 namespace {
 struct PipeDeleter {
-  void operator()(FILE *fp) const noexcept {
+  void operator()(FILE* fp) const noexcept {
     if (fp) {
       pclose(fp);
     }
   }
 };
-} // namespace
+}  // namespace
 
-void GitLogParser::parseLine(std::string_view line,
-                             const LineCallback &callback) {
+void GitLogParser::parseLine(std::string_view line, const LineCallback& callback) {
   if (line.starts_with("commit ")) {
     std::string_view rest = line.substr(7);
     size_t spacePos = rest.find(' ');
@@ -38,8 +38,7 @@ void GitLogParser::parseLine(std::string_view line,
 
   if (line.starts_with("Date: ")) {
     std::string_view d = line.substr(6);
-    while (!d.empty() && d.front() == ' ')
-      d.remove_prefix(1);
+    while (!d.empty() && d.front() == ' ') d.remove_prefix(1);
     currentDate_ = std::string(d);
     return;
   }
@@ -91,7 +90,7 @@ void GitLogParser::parseLine(std::string_view line,
   }
 }
 
-void GitLogParser::parseStream(std::istream &is, const LineCallback &callback) {
+void GitLogParser::parseStream(std::istream& is, const LineCallback& callback) {
   std::string line;
   while (std::getline(is, line)) {
     if (!line.empty() && line.back() == '\r') {
@@ -101,21 +100,18 @@ void GitLogParser::parseStream(std::istream &is, const LineCallback &callback) {
   }
 }
 
-void GitLogParser::parseRepository(const std::filesystem::path &repoPath,
-                                   const LineCallback &callback,
-                                   const std::string &revisionRange) {
-  std::string cmd = "git -C \"" + repoPath.string() +
-                    "\" log -p --full-history --date=iso " + revisionRange +
-                    " 2>/dev/null";
+void GitLogParser::parseRepository(const std::filesystem::path& repoPath,
+                                   const LineCallback& callback, const std::string& revisionRange) {
+  std::string cmd = "git -C \"" + repoPath.string() + "\" log -p --full-history --date=iso " +
+                    revisionRange + " 2>/dev/null";
 
   std::unique_ptr<FILE, PipeDeleter> pipe(popen(cmd.c_str(), "r"));
   if (!pipe) {
-    throw std::runtime_error("Failed to execute git log command on: " +
-                             repoPath.string());
+    throw std::runtime_error("Failed to execute git log command on: " + repoPath.string());
   }
 
   GitLogParser parser;
-  char *linebuf = nullptr;
+  char* linebuf = nullptr;
   size_t linecap = 0;
   ssize_t linelen = 0;
 
@@ -128,8 +124,7 @@ void GitLogParser::parseRepository(const std::filesystem::path &repoPath,
       linebuf[linelen - 1] = '\0';
       linelen--;
     }
-    parser.parseLine(std::string_view(linebuf, static_cast<size_t>(linelen)),
-                     callback);
+    parser.parseLine(std::string_view(linebuf, static_cast<size_t>(linelen)), callback);
   }
 
   if (linebuf) {
@@ -137,4 +132,4 @@ void GitLogParser::parseRepository(const std::filesystem::path &repoPath,
   }
 }
 
-} // namespace scanner
+}  // namespace scanner

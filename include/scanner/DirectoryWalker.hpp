@@ -13,16 +13,14 @@ struct FileLine {
 };
 
 class DirectoryWalker {
-public:
-  using LineCallback = std::function<void(const FileLine &)>;
+ public:
+  using LineCallback = std::function<void(const FileLine&)>;
 
-  static void walkDirectory(const std::filesystem::path &rootPath,
-                            const LineCallback &callback);
+  static void walkDirectory(const std::filesystem::path& rootPath, const LineCallback& callback);
 
-  static void walkFile(const std::filesystem::path &filePath,
-                       const LineCallback &callback);
+  static void walkFile(const std::filesystem::path& filePath, const LineCallback& callback);
 
-  [[nodiscard]] static bool isBinaryFile(const std::filesystem::path &path);
+  [[nodiscard]] static bool isBinaryFile(const std::filesystem::path& path);
 };
 
-} // namespace scanner
+}  // namespace scanner

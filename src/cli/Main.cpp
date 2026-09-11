@@ -1,10 +1,11 @@
-#include "scanner/Reporter.hpp"
-#include "scanner/Scanner.hpp"
 #include <chrono>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
+
+#include "scanner/Reporter.hpp"
+#include "scanner/Scanner.hpp"
 
 namespace {
 
@@ -15,10 +16,12 @@ void printUsage() {
   std::cout << "========================================================================\n";
   std::cout << "Usage: secret_scanner_cli <command> [options]\n\n";
   std::cout << "Commands:\n";
-  std::cout << "  scan-git  [repoPath=.] [rev=HEAD] [-o out.json]   Audit Git commit history diffs\n";
+  std::cout
+      << "  scan-git  [repoPath=.] [rev=HEAD] [-o out.json]   Audit Git commit history diffs\n";
   std::cout << "  scan-dir  [dirPath=.] [-o out.json]               Audit working directory tree\n";
   std::cout << "  scan-file <filePath> [-o out.json]                Audit single source file\n";
-  std::cout << "  bench     [lines=1000000]                         Benchmark scanning throughput\n";
+  std::cout
+      << "  bench     [lines=1000000]                         Benchmark scanning throughput\n";
   std::cout << "========================================================================\n";
 }
 
@@ -127,7 +130,7 @@ int cmdBench(size_t lineCount) {
   return 0;
 }
 
-} // namespace
+}  // namespace
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
@@ -143,8 +146,10 @@ int main(int argc, char* argv[]) {
     std::string jsonOut;
     for (int i = 2; i < argc; ++i) {
       std::string arg = argv[i];
-      if (arg == "-o" && i + 1 < argc) jsonOut = argv[++i];
-      else if (arg != repo && arg[0] != '-') rev = arg;
+      if (arg == "-o" && i + 1 < argc)
+        jsonOut = argv[++i];
+      else if (arg != repo && arg[0] != '-')
+        rev = arg;
     }
     return cmdScanGit(repo, rev, jsonOut);
   }

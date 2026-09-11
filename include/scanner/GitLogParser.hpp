@@ -1,11 +1,12 @@
 #pragma once
 
-#include "scanner/SecretFinding.hpp"
 #include <filesystem>
 #include <functional>
 #include <istream>
 #include <string>
 #include <string_view>
+
+#include "scanner/SecretFinding.hpp"
 
 namespace scanner {
 
@@ -19,8 +20,8 @@ struct DiffLine {
 };
 
 class GitLogParser {
-public:
-  using LineCallback = std::function<void(const DiffLine &)>;
+ public:
+  using LineCallback = std::function<void(const DiffLine&)>;
 
   GitLogParser() = default;
 
@@ -28,21 +29,20 @@ public:
    * Parses a single line from a git log -p stream, updating internal parser
    * state.
    */
-  void parseLine(std::string_view line, const LineCallback &callback);
+  void parseLine(std::string_view line, const LineCallback& callback);
 
   /**
    * Parses a full stream from an istream.
    */
-  void parseStream(std::istream &is, const LineCallback &callback);
+  void parseStream(std::istream& is, const LineCallback& callback);
 
   /**
    * Runs git log -p on a repository directory and parses diff output.
    */
-  static void parseRepository(const std::filesystem::path &repoPath,
-                              const LineCallback &callback,
-                              const std::string &revisionRange = "HEAD");
+  static void parseRepository(const std::filesystem::path& repoPath, const LineCallback& callback,
+                              const std::string& revisionRange = "HEAD");
 
-private:
+ private:
   std::string currentCommit_;
   std::string currentAuthor_;
   std::string currentDate_;
@@ -50,4 +50,4 @@ private:
   size_t currentLineNum_{0};
 };
 
-} // namespace scanner
+}  // namespace scanner

@@ -1,8 +1,9 @@
-#include "scanner/FalsePositiveFilter.hpp"
-#include "scanner/RuleEngine.hpp"
 #include <cassert>
 #include <iostream>
 #include <vector>
+
+#include "scanner/FalsePositiveFilter.hpp"
+#include "scanner/RuleEngine.hpp"
 
 void testSuppressionFilters() {
   using scanner::FalsePositiveFilter;
@@ -12,8 +13,7 @@ void testSuppressionFilters() {
   assert(!FalsePositiveFilter::isUUID("NOT_A_UUID_IDENTIFIER_STRING_1234"));
 
   // 2. Commit Hash suppression
-  assert(FalsePositiveFilter::isCommitHash(
-      "e0a81d45c6b908f1b67280e2f5b4a9234125b6a7"));
+  assert(FalsePositiveFilter::isCommitHash("e0a81d45c6b908f1b67280e2f5b4a9234125b6a7"));
   assert(FalsePositiveFilter::isCommitHash(
       "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"));
   assert(!FalsePositiveFilter::isCommitHash("not_a_hex_hash_at_all_12345"));
@@ -40,18 +40,17 @@ void testNoFalsePositivesInRuleEngine() {
   std::vector<scanner::SecretFinding> findings;
 
   // UUID in a JSON response
-  engine.scanLine("{\"requestId\": \"123e4567-e89b-12d3-a456-426614174000\"}",
-                  "response.json", 1, "", "", "", findings);
+  engine.scanLine("{\"requestId\": \"123e4567-e89b-12d3-a456-426614174000\"}", "response.json", 1,
+                  "", "", "", findings);
   assert(findings.empty());
 
   // Commit hash in a script
-  engine.scanLine("PREV_COMMIT=e0a81d45c6b908f1b67280e2f5b4a9234125b6a7",
-                  "deploy.sh", 4, "", "", "", findings);
+  engine.scanLine("PREV_COMMIT=e0a81d45c6b908f1b67280e2f5b4a9234125b6a7", "deploy.sh", 4, "", "",
+                  "", findings);
   assert(findings.empty());
 
   // Placeholder in documentation
-  engine.scanLine("apiKey = 'YOUR_API_KEY_HERE'", "README.md", 15, "", "", "",
-                  findings);
+  engine.scanLine("apiKey = 'YOUR_API_KEY_HERE'", "README.md", 15, "", "", "", findings);
   assert(findings.empty());
 
   std::cout << "testNoFalsePositivesInRuleEngine: PASSED\n";

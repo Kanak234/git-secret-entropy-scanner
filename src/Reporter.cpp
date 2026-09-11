@@ -1,11 +1,12 @@
 #include "scanner/Reporter.hpp"
+
 #include <fstream>
 #include <iomanip>
 
 namespace scanner {
 
-void Reporter::printConsoleReport(std::span<const SecretFinding> findings,
-                                  const ScanStats &stats, std::ostream &os) {
+void Reporter::printConsoleReport(std::span<const SecretFinding> findings, const ScanStats& stats,
+                                  std::ostream& os) {
   os << "======================================================================"
         "==\n";
   os << " Git Secret Entropy Scanner Audit Report\n";
@@ -18,21 +19,17 @@ void Reporter::printConsoleReport(std::span<const SecretFinding> findings,
     os << "\n  [!] " << findings.size() << " POTENTIAL SECRET(S) DETECTED:\n\n";
 
     for (size_t i = 0; i < findings.size(); ++i) {
-      const auto &f = findings[i];
-      os << "  #" << (i + 1) << " [" << f.ruleId << "] " << f.description
-         << "\n";
+      const auto& f = findings[i];
+      os << "  #" << (i + 1) << " [" << f.ruleId << "] " << f.description << "\n";
       os << "     File:     " << f.filePath << ":" << f.lineNumber << "\n";
       if (!f.commitHash.empty()) {
         os << "     Commit:   " << f.commitHash.substr(0, 8);
-        if (!f.commitAuthor.empty())
-          os << " (by " << f.commitAuthor << ")";
-        if (!f.commitDate.empty())
-          os << " on " << f.commitDate;
+        if (!f.commitAuthor.empty()) os << " (by " << f.commitAuthor << ")";
+        if (!f.commitDate.empty()) os << " on " << f.commitDate;
         os << "\n";
       }
       os << "     Secret:   " << f.maskedText << "\n";
-      os << "     Entropy:  " << std::fixed << std::setprecision(2) << f.entropy
-         << " bits/char\n";
+      os << "     Entropy:  " << std::fixed << std::setprecision(2) << f.entropy << " bits/char\n";
       os << "     Line:     " << f.lineContent << "\n\n";
     }
   }
@@ -46,21 +43,20 @@ void Reporter::printConsoleReport(std::span<const SecretFinding> findings,
   }
   os << "  Total Files Audited:    " << stats.totalFiles << "\n";
   os << "  Secrets Detected:       " << stats.totalFindings << "\n";
-  os << "  Scan Duration:          " << std::fixed << std::setprecision(2)
-     << stats.scanDurationMs << " ms\n";
+  os << "  Scan Duration:          " << std::fixed << std::setprecision(2) << stats.scanDurationMs
+     << " ms\n";
 
   if (stats.scanDurationMs > 0.0) {
-    double linesPerSec = (static_cast<double>(stats.totalLines) /
-                          (stats.scanDurationMs / 1000.0));
-    os << "  Scanning Throughput:    " << std::fixed << std::setprecision(0)
-       << linesPerSec << " lines/sec\n";
+    double linesPerSec = (static_cast<double>(stats.totalLines) / (stats.scanDurationMs / 1000.0));
+    os << "  Scanning Throughput:    " << std::fixed << std::setprecision(0) << linesPerSec
+       << " lines/sec\n";
   }
   os << "======================================================================"
         "==\n";
 }
 
-void Reporter::exportJsonReport(std::span<const SecretFinding> findings,
-                                const ScanStats &stats, std::ostream &os) {
+void Reporter::exportJsonReport(std::span<const SecretFinding> findings, const ScanStats& stats,
+                                std::ostream& os) {
   auto escapeJson = [](std::string_view s) {
     std::string res;
     for (char c : s) {
@@ -95,7 +91,7 @@ void Reporter::exportJsonReport(std::span<const SecretFinding> findings,
 
   os << "  \"findings\": [\n";
   for (size_t i = 0; i < findings.size(); ++i) {
-    const auto &f = findings[i];
+    const auto& f = findings[i];
     os << "    {\n";
     os << "      \"ruleId\": \"" << escapeJson(f.ruleId) << "\",\n";
     os << "      \"description\": \"" << escapeJson(f.description) << "\",\n";
@@ -113,13 +109,12 @@ void Reporter::exportJsonReport(std::span<const SecretFinding> findings,
   os << "}\n";
 }
 
-void Reporter::exportJsonFile(std::span<const SecretFinding> findings,
-                              const ScanStats &stats,
-                              const std::filesystem::path &outPath) {
+void Reporter::exportJsonFile(std::span<const SecretFinding> findings, const ScanStats& stats,
+                              const std::filesystem::path& outPath) {
   std::ofstream ofs(outPath);
   if (ofs) {
     exportJsonReport(findings, stats, ofs);
   }
 }
 
-} // namespace scanner
+}  // namespace scanner
